@@ -1,0 +1,48 @@
+[
+	{
+		"id": "michael"
+		, "name": "Michael"
+		, "characterName": "People3"
+		, "characterIndex": 7
+		, "waypoints":
+		{
+			"map6":
+			[
+				{
+					"time": "10:01"
+					, "days": "all"
+					, "location": {"x": 15, "y": 12}
+					, "action": {
+						"type": "enter_using_door"
+						, "door_name": "EV005"
+					}
+				}
+				, {
+					"time": "10:04"
+					, "days": "all"
+					, "action": {
+						"type": "exit_using_door"
+						, "door_name": "EV005"
+					}
+				}
+			]
+		}
+	}
+	, {
+		"id": "steph"
+		, "name": "Steph"
+		, "characterName": "Actor2"
+		, "characterIndex": 1
+		, "waypoints":
+		{
+			"map6":
+			[
+				{
+					"time": "10:06"
+					, "days": "all"
+					, "location": {"x": 17, "y": 5}
+				}
+			]
+		}
+	}
+]
