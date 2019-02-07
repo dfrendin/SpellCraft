@@ -36,10 +36,13 @@
 * SpellCraft - Core
 * ============================================================================
 * Provides core functionality for SpellCraft.
+*
+* The goal of this plugin is not really to do anything special by its own, but
+* provide a platform and reusable environment which upon other functionality
+* may be built.
 *=============================================================================*/
 var Imported = Imported || {};
 var SpellCraft = SpellCraft || {};
-
 
 (function ($rootScope)
 {
@@ -57,6 +60,19 @@ var SpellCraft = SpellCraft || {};
 	$rootScope.Param.gameSecondsPerSecond = Number($rootScope.Parameters.gameSecondsPerSecond || 10);
 	$rootScope.Param.disableTimeOnDialogue = $rootScope.Parameters.disableTimeOnDialogue !== false;
 	$rootScope.Param.initialTime = $rootScope.Parameters.initialTime || '08:00';
+	
+	
+	/**
+	 * Force WebGL
+	 */
+	SceneManager.preferableRendererType = function() {
+		return 'webgl';
+	};
+            
+
+	
+	
+	
 
 	/*=============================================================================
 	* NodeJS IO <SpellCraft.IO>
@@ -80,6 +96,31 @@ var SpellCraft = SpellCraft || {};
 			return this.fs.readFileSync(filePath + filename, 'utf8');
 		};
 		
+		$scope.execScript = function(src)
+		{
+			return new Promise(function(resolve, reject)
+			{
+				let url = "js/" + src;
+				let dom_script = document.createElement("script");
+				dom_script.type = "text/javascript";
+				dom_script.src = url;
+				dom_script.async = false;
+				dom_script._url = url;
+				
+				dom_script.onload = function()
+				{
+					resolve();
+				};
+
+				dom_script.onerror = function()
+				{
+					reject(this);
+				};
+				
+				document.body.appendChild(dom_script);
+			});
+		};
+		
 		function resolvePath(relativePath)
 		{
 			//Checks if MV is in dev mode, or production, then decides the appropriate path
@@ -93,6 +134,7 @@ var SpellCraft = SpellCraft || {};
 			//Decode URI component and finally return the path
 			return decodeURIComponent(path);
 		}
+		
 	}( $rootScope.IO = $rootScope.IO || {} ));
 
 	/*=============================================================================
@@ -123,57 +165,6 @@ var SpellCraft = SpellCraft || {};
 		};  
 
 	}( $rootScope.RPGMV = $rootScope.RPGMV || {} ));
-
-	/*=============================================================================
-	* Graphics <SpellCraft.GFX>
-	* Graphics related stuff
-	*=============================================================================*/
-	(function($scope)
-	{
-		function PIXIContainerObject()
-		{
-			this.initialize.apply(this, arguments);
-		}
-
-		$scope.PIXIContainer = PIXIContainerObject;
-		$scope.PIXIContainer.prototype = Object.create(PIXI.Container.prototype);
-		$scope.PIXIContainer.prototype.constructor = $scope.PIXIContainer;
-
-		$scope.hexToRgb = function(hex)
-		{
-			var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-			return result ?
-			{
-				red : parseInt(result[1], 16),
-				green : parseInt(result[2], 16),
-				blue : parseInt(result[3], 16)
-			} : null;
-		};
-		
-		$scope.walkColor = function(newRGB, currentRGB, colorName, tintSpeed)
-		{
-			if (newRGB[colorName] < currentRGB[colorName])
-			{
-				currentRGB[colorName] = currentRGB[colorName] - tintSpeed;
-				if (newRGB[colorName] > currentRGB[colorName])
-				{
-					currentRGB[colorName] = newRGB[colorName];
-				}
-			}
-			else if(newRGB[colorName] > currentRGB[colorName])
-			{
-				currentRGB[colorName] = currentRGB[colorName] + tintSpeed;
-				if (newRGB[colorName] < currentRGB[colorName])
-				{
-					currentRGB[colorName] = newRGB[colorName];
-				}
-			}
-
-			newRGB[colorName] = newRGB[colorName].clamp(0, 255);
-		};
-
-		
-	}( $rootScope.GFX = $rootScope.GFX || {} ));
 
 	/*=============================================================================
 	* Event management <SpellCraft.EventManager>
@@ -227,49 +218,132 @@ var SpellCraft = SpellCraft || {};
 			}
 		};
 		
-		/**
-		 * Setup event "preSetupNewGame", "setupNewGame" once DataManager.setupNewGame is run
-		 */
-		var _DataManager_setupNewGame = DataManager.setupNewGame;
-		DataManager.setupNewGame = function()
-		{
-			$scope.emit('preSetupNewGame', undefined);
-			let result = _DataManager_setupNewGame.call(this);
-			$scope.emit('setupNewGame', undefined);
-			return result;
-		};
-		
-		/**
-		 * Setup event "preGameMapSetup", "gameMapSetup" once Game_Map.setup is run
-		 */
-		var _Game_Map_setup = Game_Map.setup;
-		Game_Map.setup = function(mapId)
-		{
-			$scope.emit('preGameMapSetup', {'mapId': mapId});
-			let result = _Game_Map_setup.call(this);
-			$scope.emit('gameMapSetup', {'mapId': mapId});
-			return result;
-		};
-
-
-		/**
-		 * Setup event "preCreateWeather", "createWeather" once a Spriteset_Map.createWeather being executed
-		 */
-		(function($)
-		{
-			var Spriteset_Map_prototype_createWeather = $.createWeather;
-			$.createWeather = function()
-			{
-				SpellCraft.EventManager.emit('preCreateWeather', undefined, this);
-				let result = Spriteset_Map_prototype_createWeather.call(this);
-				SpellCraft.EventManager.emit('createWeather', undefined, this);
-				return result;
-			};
-		})(Spriteset_Map.prototype);
-
-
 	}( $rootScope.EventManager = $rootScope.EventManager || {} ));
 
+	/*=============================================================================
+	* Graphics <SpellCraft.GFX>
+	* Graphics related stuff
+	*=============================================================================*/
+	(function($scope)
+	{
+		
+		$scope.initialize = function (spriteset)
+		{
+			$scope._spriteset = spriteset;
+			$rootScope.EventManager.emit("gfxInitialized", undefined, this);
+			//$scope._layer = new PIXI.Container();
+			
+			//$scope._lightMap = new PIXI.RenderTexture.create(Graphics.width, Graphics.height);
+			//$scope._lightMapSprite = new PIXI.Sprite($scope._lightMap);
+			
+			
+			//$scope.sprite = PIXI.Sprite.fromImage('img/system/loading.png');
+			
+			//$scope._blurFilter1 = new PIXI.filters.BlurFilter();
+			//$scope._blurFilter1.blur = 5;
+			//$scope._lightMapSprite.filters = [$scope._blurFilter1];
+			
+			//$scope._layer.addChild($scope._lightMapSprite);
+			//$scope._layer.addChild($scope.sprite);
+			//spriteset.addChild($scope._layer);
+			
+
+			
+		};
+
+		$scope.update = function ()
+		{
+			$rootScope.EventManager.emit("gfxUpdate", undefined, this);
+			
+			
+		};
+
+		$scope.dispose = function ()
+		{
+			$scope._spriteset = null;
+			$rootScope.EventManager.emit("gfxDisposed", undefined, this);
+
+			console.log('GFX disposed');
+		};
+		
+		$rootScope.EventManager.on('createWeather', function ()
+		{
+			$scope.initialize(this);
+		});
+		
+		$rootScope.EventManager.on('spritesetMapUpdate', function ()
+		{
+			$scope.update();
+		});
+
+		$rootScope.EventManager.on('preSpritesetMapTerminate', function ()
+		{
+			$scope.dispose();
+		});
+		
+
+
+		/*function PIXIContainerObject()
+		{
+			this.initialize.apply(this, arguments);
+		}
+
+		$scope.PIXIContainer = PIXIContainerObject;
+		$scope.PIXIContainer.prototype = Object.create(PIXI.Container.prototype);
+		$scope.PIXIContainer.prototype.constructor = $scope.PIXIContainer;
+
+		$scope.hexToRgb = function(hex)
+		{
+			var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+			return result ?
+			{
+				red : parseInt(result[1], 16),
+				green : parseInt(result[2], 16),
+				blue : parseInt(result[3], 16)
+			} : null;
+		};
+		
+		$scope.walkColor = function(newRGB, currentRGB, colorName, tintSpeed)
+		{
+			if (newRGB[colorName] < currentRGB[colorName])
+			{
+				currentRGB[colorName] = currentRGB[colorName] - tintSpeed;
+				if (newRGB[colorName] > currentRGB[colorName])
+				{
+					currentRGB[colorName] = newRGB[colorName];
+				}
+			}
+			else if(newRGB[colorName] > currentRGB[colorName])
+			{
+				currentRGB[colorName] = currentRGB[colorName] + tintSpeed;
+				if (newRGB[colorName] < currentRGB[colorName])
+				{
+					currentRGB[colorName] = newRGB[colorName];
+				}
+			}
+
+			newRGB[colorName] = newRGB[colorName].clamp(0, 255);
+		};
+
+		// Stop application wait for load to finish
+		//app.stop();
+		PIXI.loader.add('shader', 'data/shaders/test.frag').load(onLoaded);
+		
+		// Handle the load completed
+		function onLoaded (loader,res) {
+
+			// Create the new filter, arguments: (vertexShader, framentSource)
+			var filter = new PIXI.Filter(null, res.shader.data);
+
+			// Add the filter
+			//background.filters = [filter];
+
+			// Resume application update
+			//app.start();
+		}*/
+
+		
+	}( $rootScope.GFX = $rootScope.GFX || {} ));
 
 
 
@@ -291,7 +365,7 @@ var SpellCraft = SpellCraft || {};
 			{
 				_interval = setInterval(function()
 				{
-					if (!SpellCraft.RPGMV.dialogueActive() || !$rootScope.Param.disableTimeOnDialogue)
+					if (!$rootScope.RPGMV.dialogueActive() || !$rootScope.Param.disableTimeOnDialogue)
 						$scope.add($rootScope.Param.gameSecondsPerSecond, 0, 0, 0);
 				}, 1000);
 			}
@@ -353,7 +427,7 @@ var SpellCraft = SpellCraft || {};
 			$scope._timestamp = ($scope._days * 24 * 60) + ($scope._hours * 60) + $scope._minutes;
 			
 			if (ts != $scope._timestamp)
-				SpellCraft.EventManager.emit('changeTime', {'timestamp': $scope._timestamp, 'hour': $scope._hours, 'minute': $scope._minutes, 'second': $scope._seconds});
+				$rootScope.EventManager.emit('changeTime', {'timestamp': $scope._timestamp, 'hour': $scope._hours, 'minute': $scope._minutes, 'second': $scope._seconds});
 			
 		};
 
@@ -366,7 +440,7 @@ var SpellCraft = SpellCraft || {};
 			$scope.sync();
 		};
 		
-		SpellCraft.EventManager.on('setupNewGame', function()
+		$rootScope.EventManager.on('setupNewGame', function()
 		{
 			$scope.set(
 			{
@@ -389,10 +463,150 @@ var SpellCraft = SpellCraft || {};
 	
 
 
+/*=============================================================================
+* The following section injects various overrides into existing RPGMV/Pixijs
+* objects, extending them with new functionality and provides various points
+* that emits events for other plugins to subscribe to.
+*=============================================================================*/
+
+	/**
+	 * Game_Map
+	 * Emit "gameMapSetup" event
+	 * Determine if current dataMap or tileset contains json formated comment and parse it as .noteJson
+	 */
+	(function($scope)
+	{
+		var _Game_Map_setup = $scope.setup;
+		$scope.setup = function(mapId)
+		{
+			$rootScope.EventManager.emit('preGameMapSetup', {'mapId': mapId});
+			let result = _Game_Map_setup.call(this);
+			$rootScope.EventManager.emit('gameMapSetup', {'mapId': mapId});
+			
+			try
+			{
+				$dataMap.noteJson = JSON.parse($dataMap.note);
+			} catch (e)
+			{
+				$dataMap.noteJson = false;
+			}
+
+			try
+			{
+				this.tileset().noteJson = JSON.parse(this.tileset().note);
+			} catch (e)
+			{
+				this.tileset().noteJson = false;
+			}
+			
+			return result;
+		};
+	})(Game_Map.prototype);
+	
+	
+	/**
+	 * Game_Event
+	 * Determine if an event contains json formated comment and parse it as .noteJson
+	 */
+	(function($scope)
+	{
+		var _Game_Event_setupPage = $scope.setupPage;
+		$scope.setupPage = function ()
+		{
+			let result = _Game_Event_setupPage.call(this);
+			
+			let page = this.page();
+			let list = this.list();
+			let comment = '';
+			if (list && list.length > 1)
+			{
+				for (let i = 0; i < list.length; i++)
+				{
+					if (list[i])
+					{
+						if ((list[i].code == 108 || list[i].code == 408))
+						{
+							comment += list[i].parameters.join('\n') + '\n';
+						}
+					}
+				}
+			}
+			
+			if (comment != '')
+			{
+				try
+				{
+					this.noteJson = JSON.parse(comment);
+				} catch (e)
+				{
+					this.noteJson = false;
+				}
+
+			}
+			
+			return result;
+		};
+	})(Game_Event.prototype);
+
+
+
+	/**
+	 * DataManager
+	 * Emit "setupNewGame" event
+	 */
+	(function($scope)
+	{
+		var _DataManager_setupNewGame = $scope.setupNewGame;
+		$scope.setupNewGame = function()
+		{
+			$rootScope.EventManager.emit('preSetupNewGame', undefined);
+			let result = _DataManager_setupNewGame.call(this);
+			$rootScope.EventManager.emit('setupNewGame', undefined);
+			return result;
+		};
+	})(DataManager.prototype);
+
+
+	/**
+	 * Spriteset_Map
+	 * Emit "createWeather", "spritesetMapUpdate", "spritesetMapTerminate" events
+	 */
+	(function($scope)
+	{
+		var _Spriteset_Map_createWeather = $scope.createWeather;
+		$scope.createWeather = function()
+		{
+			$rootScope.EventManager.emit('preCreateWeather', undefined, this);
+			let result = _Spriteset_Map_createWeather.call(this);
+			$rootScope.EventManager.emit('createWeather', undefined, this);
+			return result;
+		};
+		
+		var _Spriteset_Map_update = $scope.update;
+		$scope.update = function()
+		{
+			$rootScope.EventManager.emit('preSpritesetMapUpdate', undefined, this);
+			let result = _Spriteset_Map_update.call(this);
+			$rootScope.EventManager.emit('spritesetMapUpdate', undefined, this);
+			return result;
+		};
+
+		var _Spriteset_Map_terminate = $scope.terminate;
+		$scope.terminate = function()
+		{
+			$rootScope.EventManager.emit('preSpritesetMapTerminate', undefined, this);
+			let result = _Spriteset_Map_terminate.call(this);
+			$rootScope.EventManager.emit('spritesetMapTerminate', undefined, this);
+			return result;
+		};
+		
+
+	})(Spriteset_Map.prototype);
 	
 	
 
 }( SpellCraft = SpellCraft || {} ));
-
+  
+$sc = SpellCraft;
 
 Imported.SpellCraft = 1.0;
