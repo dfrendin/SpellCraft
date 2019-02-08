@@ -230,7 +230,7 @@ var SpellCraft = SpellCraft || {};
 		$scope.initialize = function (spriteset)
 		{
 			$scope._spriteset = spriteset;
-			$rootScope.EventManager.emit("gfxInitialized", undefined, this);
+			//$rootScope.EventManager.emit("gfxInitialized", undefined, this);
 			//$scope._layer = new PIXI.Container();
 			
 			//$scope._lightMap = new PIXI.RenderTexture.create(Graphics.width, Graphics.height);
@@ -253,7 +253,7 @@ var SpellCraft = SpellCraft || {};
 
 		$scope.update = function ()
 		{
-			$rootScope.EventManager.emit("gfxUpdate", undefined, this);
+			//$rootScope.EventManager.emit("gfxUpdate", undefined, this);
 			
 			
 		};
@@ -261,9 +261,9 @@ var SpellCraft = SpellCraft || {};
 		$scope.dispose = function ()
 		{
 			$scope._spriteset = null;
-			$rootScope.EventManager.emit("gfxDisposed", undefined, this);
+			//$rootScope.EventManager.emit("gfxDisposed", undefined, this);
 
-			console.log('GFX disposed');
+			//console.log('GFX disposed');
 		};
 		
 		$rootScope.EventManager.on('createWeather', function ()
@@ -481,7 +481,6 @@ var SpellCraft = SpellCraft || {};
 		{
 			$rootScope.EventManager.emit('preGameMapSetup', {'mapId': mapId});
 			let result = _Game_Map_setup.call(this);
-			$rootScope.EventManager.emit('gameMapSetup', {'mapId': mapId});
 			
 			try
 			{
@@ -493,11 +492,13 @@ var SpellCraft = SpellCraft || {};
 
 			try
 			{
-				this.tileset().noteJson = JSON.parse(this.tileset().note);
+				this.noteJson = JSON.parse(this.tileset().note);
 			} catch (e)
 			{
-				this.tileset().noteJson = false;
+				this.noteJson = false;
 			}
+			
+			$rootScope.EventManager.emit('gameMapSetup', {'mapId': mapId});
 			
 			return result;
 		};
