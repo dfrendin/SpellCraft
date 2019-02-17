@@ -49,4 +49,5 @@ If you require a more permittive licensing agreement you can contact me freely a
 * [freepik](https://www.freepik.com/free-photos-vectors/design) - Great graphics resource, used some of their material for the boilerplate project.
 * [Khas](http://arcthunder.blogspot.com/) - Inspirational work on WebGL.
 * [Hudell](https://tropicalpuppy.com/) - Inspirational work on orange plugins.
-* [Kino](https://forums.rpgmakerweb.com/index.php?threads/rpgmakermv-node-js-part-1-reading-and-writing-files.80140/) - Wrote a good article on RPG Maker MV and NodeJS I/O
+* [Kino](https://forums.rpgmakerweb.com/index.php?threads/rpgmakermv-node-js-part-1-reading-and-writing-files.80140/) - Wrote a good article on RPG Maker MV and NodeJS I/O.
+* [f-space](https://github.com/f-space/RPGMakerMVTypings) - RPG Maker MV TypeScript type declaration files. (MIT license)

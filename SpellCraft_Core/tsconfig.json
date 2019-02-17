@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+        "module": "none",
+		"target": "es5",
+        "noImplicitAny": true,
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "sourceMap": false,
+		"outFile": "dist/SpellCraft_Core.js",
+		"lib": [
+			"es6"
+		]
+    },
+    "files": [
+        "src/SpellCraft_Headers.ts",
+        "src/SpellCraft/PluginParams.ts",
+        "src/SpellCraft_IO.ts",
+        "src/SpellCraft_EventManager.ts",
+        "src/SpellCraft/Game_Lighting.ts",
+        "src/SpellCraft/Graphics.ts",
+        "src/SpellCraft/TimeManager.ts",
+        "src/SpellCraft/LightFilter.ts",
+        "src/SpellCraft_Core.ts"
+    ]
+}
